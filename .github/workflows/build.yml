@@ -12,17 +12,37 @@ jobs:
       - name: Unzip project
         run: unzip -q alone-launcher.zip
 
+      - name: Fix lib.rs
+        run: |
+          cat > alone-launcher/app/src/lib.rs << 'EOF'
+          mod app;
+          pub use app::App;
+
+          #[cfg(target_os = "android")]
+          #[no_mangle]
+          fn android_main(app: winit::platform::android::activity::AndroidApp) {
+              use winit::platform::android::EventLoopBuilderExtAndroid;
+              android_logger::init_once(
+                  android_logger::Config::default().with_max_level(log::LevelFilter::Info),
+              );
+              let root = app
+                  .internal_data_path()
+                  .unwrap_or_else(|| std::path::PathBuf::from("/data/local/tmp"));
+              let mut options = eframe::NativeOptions::default();
+              options.event_loop_builder = Some(Box::new(move |builder| {
+                  builder.with_android_app(app);
+              }));
+              let _ = eframe::run_native(
+                  "ALONE LAUNCHER",
+                  options,
+                  Box::new(move |cc| Ok(Box::new(App::new(cc, root)))),
+              );
+          }
+          EOF
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/bin
-            alone-launcher/app/target
-          key: cargo-${{ hashFiles('alone-launcher/**/Cargo.toml') }}
 
       - name: Install cargo-apk
         run: cargo install cargo-apk || true
