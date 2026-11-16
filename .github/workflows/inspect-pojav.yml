@@ -1,0 +1,27 @@
+name: Inspect Pojav
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/inspect-pojav.yml'
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Pojav APK
+        run: curl -L -o pojav.apk https://github.com/PojavLauncherTeam/PojavLauncher/releases/download/gladiolus/PojavLauncher.apk
+
+      - name: List contents
+        run: |
+          ls -la pojav.apk
+          {
+            echo '## Top folders'
+            echo '~~~'
+            unzip -Z1 pojav.apk | awk -F/ '{print $1"/"$2"/"$3}' | sort | uniq -c | sort -rn | head -60
+            echo '~~~'
+            echo '## Biggest files'
+            echo '~~~'
+            unzip -l pojav.apk | sort -k1 -n -r | head -40
+            echo '~~~'
+          } >> $GITHUB_STEP_SUMMARY
