@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Unzip project
-        run: unzip -q alone-launcher.zip
+        run: unzip -q "alone-launcher (1).zip"
 
       - name: Fix lib.rs
         run: |
