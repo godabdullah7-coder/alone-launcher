@@ -2,27 +2,48 @@ name: Build APK
 on:
   push:
   workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Unzip project
         run: unzip -q alone-launcher.zip
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android
-      - uses: android-actions/setup-android@v3
-      - name: Install NDK
-        run: sdkmanager "ndk;26.1.10909125" "platforms;android-34" "build-tools;34.0.0"
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/bin
+            alone-launcher/app/target
+          key: cargo-${{ hashFiles('alone-launcher/**/Cargo.toml') }}
+
       - name: Install cargo-apk
-        run: cargo install cargo-apk --locked
-      - name: Build APK
-        working-directory: alone-launcher/app
+        run: cargo install cargo-apk || true
+
+      - name: Make signing key
         run: |
-          export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/26.1.10909125
-          cargo apk build
+          keytool -genkey -v -keystore $HOME/alone.jks -alias alone \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass alone123 -keypass alone123 -dname "CN=ALONE"
+
+      - name: Build release APK
+        working-directory: alone-launcher/app
+        env:
+          CARGO_APK_RELEASE_KEYSTORE: /home/runner/alone.jks
+          CARGO_APK_RELEASE_KEYSTORE_PASSWORD: alone123
+        run: |
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          export ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME
+          cargo apk build --release
+
       - uses: actions/upload-artifact@v4
         with:
-          name: ALONE-APK
-          path: alone-launcher/app/target/**/apk/*.apk
+          name: ALONE-LAUNCHER-apk
+          path: alone-launcher/app/target/release/apk/*.apk
