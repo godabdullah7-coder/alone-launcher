@@ -18,7 +18,7 @@ jobs:
       - name: Install Rust & Android Targets
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android,armv7-linux-androideabi
+          targets: aarch64-linux-android
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -26,10 +26,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK & Install cargo-apk
+      - name: Setup Android NDK & Install cargo-apk
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;26.1.10909125" "build-tools;34.0.0" "platforms;android-34"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125" >> $GITHUB_ENV
           cargo install cargo-apk
 
       - name: Fix lib.rs entry point
@@ -61,8 +62,6 @@ jobs:
           EOF
 
       - name: Build Android APK
-        env:
-          ANDROID_NDK_ROOT: ${{ env.ANDROID_HOME }}/ndk/26.1.10909125
         run: |
           cd alone-launcher/app
           cargo apk build --release --target aarch64-linux-android
