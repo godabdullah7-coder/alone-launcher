@@ -15,7 +15,7 @@ jobs:
         run: |
           unzip -q -o "alone-launcher (1).zip"
 
-      - name: Install Rust & Android Targets
+      - name: Install Rust & Android Target
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android
@@ -26,12 +26,18 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android NDK & Install cargo-apk
+      - name: Setup NDK & cargo-apk
         run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;26.1.10909125" "build-tools;34.0.0" "platforms;android-34"
-          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125" >> $GITHUB_ENV
-          cargo install cargo-apk
+          NDK_PATH=$(find /usr/local/lib/android/sdk/ndk -maxdepth 1 -mindepth 1 | sort -V | tail -n 1)
+          if [ -z "$NDK_PATH" ]; then
+            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null 2>&1 || true
+            $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;26.1.10909125" "build-tools;34.0.0" "platforms;android-34"
+            NDK_PATH="$ANDROID_HOME/ndk/26.1.10909125"
+          fi
+          echo "Using NDK at: $NDK_PATH"
+          echo "ANDROID_NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+          echo "NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+          cargo install cargo-apk --locked
 
       - name: Fix lib.rs entry point
         run: |
