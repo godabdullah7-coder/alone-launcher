@@ -1,0 +1,28 @@
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unzip project
+        run: unzip -q alone-launcher.zip
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - uses: android-actions/setup-android@v3
+      - name: Install NDK
+        run: sdkmanager "ndk;26.1.10909125" "platforms;android-34" "build-tools;34.0.0"
+      - name: Install cargo-apk
+        run: cargo install cargo-apk --locked
+      - name: Build APK
+        working-directory: alone-launcher/app
+        run: |
+          export ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/26.1.10909125
+          cargo apk build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ALONE-APK
+          path: alone-launcher/app/target/**/apk/*.apk
