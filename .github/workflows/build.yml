@@ -1,6 +1,8 @@
 name: Build APK
 on:
   push:
+    paths-ignore:
+      - '.github/workflows/inspect-pojav.yml'
   workflow_dispatch:
 
 jobs:
@@ -10,7 +12,11 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Unzip project
-        run: unzip -q "alone-launcher (1).zip"
+        run: |
+          Z=$(ls alone-v*.zip 2>/dev/null | sort -V | tail -1)
+          if [ -z "$Z" ]; then Z="alone-launcher (1).zip"; fi
+          echo "Using: $Z"
+          unzip -q "$Z"
 
       - name: Fix lib.rs
         run: |
